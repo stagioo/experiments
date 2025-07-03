@@ -1,6 +1,7 @@
 import * as mediasoup from "mediasoup";
 import { config } from "./config";
-import { Router, Worker } from "mediasoup/node/lib/types";
+import { Router } from "mediasoup/node/lib/types";
+import { Worker } from "mediasoup/node/lib/types";
 
 const worker: Array<{
   worker: Worker;
@@ -18,10 +19,9 @@ export async function createWorker() {
   });
 
   worker.on("died", () => {
-    console.error("mediasoup worker died");
+    console.error("mediasoup worker died", worker.pid);
     setTimeout(() => {
-      console.log("mediasoup worker restarting...");
-      createWorker();
+      process.exit(1);
     }, 2000);
   });
 }

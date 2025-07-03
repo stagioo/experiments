@@ -7,21 +7,12 @@ import os from "os";
 
 export const config = {
   listenIp: "0.0.0.0",
-  listenPort: 3000,
+  listenPort: 3016,
   mediasoup: {
     numWorkers: Object.keys(os.cpus()).length,
     workerSettings: {
       logLevel: "debug",
-      logTags: [
-        "info",
-        "ice",
-        "dtls",
-        "rtp",
-        "srtp",
-        "rtcp",
-        "rtx",
-        "bwe",
-      ] as WorkerLogTag[],
+      logTags: ["info", "ice", "dtls", "rtp", "srtp", "rtcp"] as WorkerLogTag[],
       rtcMinPort: 10000,
       rtcMaxPort: 10100,
     },
@@ -50,7 +41,6 @@ export const config = {
           announcedIp: "127.0.0.1",
         },
       ] as TransportListenInfo[],
-      maxIncomingBitrate: 1500000,
     },
   },
 } as const;

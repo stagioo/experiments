@@ -1,14 +1,20 @@
 import * as WebSocket from "ws";
+import { createWorker } from "./worker";
 
-const websocketConnection = (websocket: WebSocket.Server) => {
+let mediasoupServer;
+
+const websocketConnection = async (websocket: WebSocket.Server) => {
+  try {
+    mediasoupServer = await createWorker();
+  } catch (error) {
+    throw error;
+  }
+
   websocket.on("connection", (ws) => {
-    console.log("Client connected");
-
     ws.on("message", (message) => {
       console.log(`Received message: ${message}`);
+      ws.send("Hello from server");
     });
-
-    ws.send("Hello from server");
   });
 };
 
