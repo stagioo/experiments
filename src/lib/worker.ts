@@ -3,7 +3,7 @@ import { config } from "./config";
 import { Router } from "mediasoup/node/lib/types";
 import { Worker } from "mediasoup/node/lib/types";
 
-const worker: Array<{
+const workers: Array<{
   worker: Worker;
   router: Router;
 }> = [];
@@ -24,4 +24,11 @@ export async function createWorker() {
       process.exit(1);
     }, 2000);
   });
+
+  const mediaCodecs = config.mediasoup.router.mediaCodecs;
+  const router = await worker.createRouter({
+    mediaCodecs,
+  });
+
+  return router;
 }

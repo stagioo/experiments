@@ -1,7 +1,8 @@
 import * as WebSocket from "ws";
 import { createWorker } from "./worker";
+import { Router } from "mediasoup/node/lib/types";
 
-let mediasoupServer;
+let mediasoupServer: Router;
 
 const websocketConnection = async (websocket: WebSocket.Server) => {
   try {
