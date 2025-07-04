@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMediasoupClient } from "../hooks/useMediasoupClient";
+import MediaControls from "../components/MediaControls";
 
 const RoomPage = () => {
   const [roomId, setRoomId] = useState("");
@@ -69,8 +70,9 @@ const RoomPage = () => {
       ) : (
         <>
           <button
-            className="bg-green-500 text-white px-4 py-2 rounded"
+            className="bg-green-500 text-white px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             onClick={handleProduce}
+            // disabled={!device?.rtpCapabilities}
           >
             Start Camera & Produce
           </button>
@@ -100,6 +102,7 @@ const RoomPage = () => {
               />
             ))}
           </div>
+          {joined && localStream && <MediaControls localStream={localStream} />}
         </>
       )}
     </div>
