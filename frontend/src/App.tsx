@@ -1,5 +1,7 @@
+import RoomPage from "./pages/RoomPage";
+
 const App = () => {
-  return <div className="bg-red-500">App</div>;
+  return <RoomPage />;
 };
 
 export default App;

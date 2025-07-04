@@ -161,5 +161,6 @@ export function useMediasoupClient() {
     localStream,
     remoteStreams,
     connected,
+    socket,
   };
 }

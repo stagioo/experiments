@@ -165,6 +165,11 @@ const socketIoConnection = async (io: SocketIOServer) => {
       }
     );
 
+    socket.on("getRouterRtpCapabilities", (data, callback) => {
+      if (!currentRoom) return callback({ error: "No room joined" });
+      callback(currentRoom.router.rtpCapabilities);
+    });
+
     socket.on("disconnect", () => {
       if (currentRoom) {
         currentRoom.removePeer(peerId);

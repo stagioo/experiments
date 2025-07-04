@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
 
-const SOCKET_URL = "http://localhost:8000";
+const SOCKET_URL = "http://127.0.0.1:8000";
 const AUTH_TOKEN = "demo-token";
 
 export function useSocket() {
@@ -12,7 +12,7 @@ export function useSocket() {
     const socket = io(SOCKET_URL, {
       auth: { token: AUTH_TOKEN },
       autoConnect: true,
-      transports: ["websocket"],
+      // transports: ["websocket"],
     });
     socketRef.current = socket;
 
