@@ -1,7 +1,6 @@
 import * as mediasoup from "mediasoup";
 import { config } from "./config";
-import { Router } from "mediasoup/node/lib/types";
-import { Worker } from "mediasoup/node/lib/types";
+import { Router, Worker } from "mediasoup/node/lib/types";
 
 const workers: Array<{
   worker: Worker;
@@ -10,7 +9,7 @@ const workers: Array<{
 
 let nextWorkerIndex = 0;
 
-export async function createWorker() {
+export async function createWorker(): Promise<Worker> {
   const worker = await mediasoup.createWorker({
     logLevel: config.mediasoup.workerSettings.logLevel,
     logTags: config.mediasoup.workerSettings.logTags,
@@ -25,10 +24,5 @@ export async function createWorker() {
     }, 2000);
   });
 
-  const mediaCodecs = config.mediasoup.router.mediaCodecs;
-  const router = await worker.createRouter({
-    mediaCodecs,
-  });
-
-  return router;
+  return worker;
 }
