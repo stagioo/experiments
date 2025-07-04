@@ -1,14 +1,14 @@
 import express from "express";
-import * as WebSocket from "ws";
+import { Server as SocketIOServer } from "socket.io";
 import * as http from "http";
-import { websocketConnection } from "./lib/ws";
+import { socketIoConnection } from "./lib/ws";
 
 const main = () => {
   const app = express();
   const server = http.createServer(app);
-  const wss = new WebSocket.Server({ server });
+  const io = new SocketIOServer(server, { cors: { origin: "*" } });
 
-  websocketConnection(wss);
+  socketIoConnection(io);
 
   const port = 8000;
 

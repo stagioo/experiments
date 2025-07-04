@@ -1,22 +1,22 @@
-import * as WebSocket from "ws";
+import { Server as SocketIOServer, Socket } from "socket.io";
 import { createWorker } from "./worker";
 import { Router } from "mediasoup/node/lib/types";
 
 let mediasoupServer: Router;
 
-const websocketConnection = async (websocket: WebSocket.Server) => {
+const socketIoConnection = async (io: SocketIOServer) => {
   try {
     mediasoupServer = await createWorker();
   } catch (error) {
     throw error;
   }
 
-  websocket.on("connection", (ws) => {
-    ws.on("message", (message) => {
+  io.on("connection", (socket: Socket) => {
+    socket.on("message", (message) => {
       console.log(`Received message: ${message}`);
-      ws.send("Hello from server");
+      socket.emit("message", "Hello from server");
     });
   });
 };
 
-export { websocketConnection };
+export { socketIoConnection };
