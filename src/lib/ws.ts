@@ -191,6 +191,15 @@ const socketIoConnection = async (io: SocketIOServer) => {
       callback(currentRoom.router.rtpCapabilities);
     });
 
+    socket.on("getRoomProducers", (data, callback) => {
+      if (!currentRoom) return callback([]);
+      // Return all producer IDs except the current user's
+      const producerIds = Array.from(currentRoom.peers.values())
+        .filter((p) => p.id !== peerId)
+        .flatMap((p) => p.producers.map((pr) => pr.id));
+      callback(producerIds);
+    });
+
     socket.on("disconnect", async () => {
       if (currentRoom) {
         currentRoom.removePeer(peerId);

@@ -14,6 +14,8 @@ const RoomPage = () => {
     remoteStreams,
     connected,
     socket,
+    consume,
+    device,
   } = useMediasoupClient();
 
   const handleJoin = async () => {
@@ -33,6 +35,16 @@ const RoomPage = () => {
 
   const handleProduce = async () => {
     await produce();
+    if (!socket) return;
+    if (!device?.rtpCapabilities) {
+      console.error("Device RTP capabilities not loaded!");
+      return;
+    }
+    socket.emit("getRoomProducers", {}, async (producerIds: string[]) => {
+      for (const producerId of producerIds) {
+        await consume(producerId, device.rtpCapabilities);
+      }
+    });
   };
 
   return (

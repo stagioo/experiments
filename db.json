@@ -1,20 +1,15 @@
 {
   "users": [
     {
-      "id": "FDXeUPFXIEe9dhDCAAAE",
-      "name": "FDXeUPFXIEe9dhDCAAAE"
-    },
-    {
-      "id": "Ex0lI0wRPfXWEUIpAAAH",
-      "name": "Ex0lI0wRPfXWEUIpAAAH"
+      "id": "EzEdBffY8RlrV0e_AAAm",
+      "name": "EzEdBffY8RlrV0e_AAAm"
     }
   ],
   "rooms": [
     {
-      "id": "1111",
+      "id": "2222",
       "users": [
-        "FDXeUPFXIEe9dhDCAAAE",
-        "Ex0lI0wRPfXWEUIpAAAH"
+        "EzEdBffY8RlrV0e_AAAm"
       ]
     }
   ]
