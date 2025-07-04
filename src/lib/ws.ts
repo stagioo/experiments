@@ -1,14 +1,18 @@
-import { Server as SocketIOServer, Socket } from "socket.io";
-import { createWorker } from "./worker";
-import { Router, Worker } from "mediasoup/node/lib/types";
-import { createTransport } from "./transport";
-import { Room } from "./room";
+import { Worker } from "mediasoup/node/lib/types";
+import { Socket, Server as SocketIOServer } from "socket.io";
 import { config } from "./config";
+import db, { initDb } from "./db";
+import { Room } from "./room";
+import { createTransport } from "./transport";
+import { createWorker } from "./worker";
 
 const AUTH_TOKEN = "demo-token";
 
 const rooms: Map<string, Room> = new Map();
 let mediasoupWorker: Worker;
+
+// Initialize db on server start
+initDb();
 
 const socketIoConnection = async (io: SocketIOServer) => {
   if (!mediasoupWorker) {
@@ -35,6 +39,12 @@ const socketIoConnection = async (io: SocketIOServer) => {
         const room = new Room(roomId, router);
         rooms.set(roomId, room);
       }
+      // Add to db if not exists
+      await db.read();
+      if (!db.data!.rooms.find((r) => r.id === roomId)) {
+        db.data!.rooms.push({ id: roomId, users: [] });
+        await db.write();
+      }
       callback({ roomId });
     });
 
@@ -50,6 +60,17 @@ const socketIoConnection = async (io: SocketIOServer) => {
       }
       currentRoom = room;
       room.addPeer(peerId);
+      // Add user to db
+      await db.read();
+      let dbRoom = db.data!.rooms.find((r) => r.id === roomId);
+      if (dbRoom && !dbRoom.users.includes(peerId)) {
+        dbRoom.users.push(peerId);
+        await db.write();
+      }
+      if (!db.data!.users.find((u) => u.id === peerId)) {
+        db.data!.users.push({ id: peerId, name: peerId });
+        await db.write();
+      }
       callback({ joined: true });
     });
 
@@ -170,11 +191,32 @@ const socketIoConnection = async (io: SocketIOServer) => {
       callback(currentRoom.router.rtpCapabilities);
     });
 
-    socket.on("disconnect", () => {
+    socket.on("disconnect", async () => {
       if (currentRoom) {
         currentRoom.removePeer(peerId);
+        // Remove user from db room
+        await db.read();
+        let dbRoom = db.data!.rooms.find((r) => r.id === currentRoom!.id);
+        if (dbRoom) {
+          dbRoom.users = dbRoom.users.filter((u) => u !== peerId);
+          await db.write();
+        }
+        // Remove user from db users if not in any room
+        const stillInRoom = db.data!.rooms.some((r) =>
+          r.users.includes(peerId)
+        );
+        if (!stillInRoom) {
+          db.data!.users = db.data!.users.filter((u) => u.id !== peerId);
+          await db.write();
+        }
+        // Clean up empty room
         if (currentRoom.peers.size === 0) {
           rooms.delete(currentRoom.id);
+          // Remove from db
+          db.data!.rooms = db.data!.rooms.filter(
+            (r) => r.id !== currentRoom!.id
+          );
+          await db.write();
         }
       }
     });

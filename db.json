@@ -1,0 +1,21 @@
+{
+  "users": [
+    {
+      "id": "FDXeUPFXIEe9dhDCAAAE",
+      "name": "FDXeUPFXIEe9dhDCAAAE"
+    },
+    {
+      "id": "Ex0lI0wRPfXWEUIpAAAH",
+      "name": "Ex0lI0wRPfXWEUIpAAAH"
+    }
+  ],
+  "rooms": [
+    {
+      "id": "1111",
+      "users": [
+        "FDXeUPFXIEe9dhDCAAAE",
+        "Ex0lI0wRPfXWEUIpAAAH"
+      ]
+    }
+  ]
+}
