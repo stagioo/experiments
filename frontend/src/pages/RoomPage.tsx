@@ -7,6 +7,9 @@ const RoomPage = () => {
   const [roomId, setRoomId] = useState("");
   const [joined, setJoined] = useState(false);
   const consumedProducersRef = useRef<Set<string>>(new Set());
+  const [remoteStreamsWithUsers, setRemoteStreamsWithUsers] = useState<
+    { stream: MediaStream; userId: string }[]
+  >([]);
   const {
     joinRoom,
     loadDevice,
@@ -14,7 +17,6 @@ const RoomPage = () => {
     createRecvTransport,
     produce,
     localStream,
-    remoteStreams,
     connected,
     socket,
     consume,
@@ -38,16 +40,28 @@ const RoomPage = () => {
   const handleProduce = async () => {
     await produce();
     if (!socket || !device?.rtpCapabilities) return;
-    socket.emit("getRoomProducers", {}, async (producerIds: string[]) => {
-      const newProducers = producerIds.filter(
-        (id) => !consumedProducersRef.current.has(id)
-      );
-      console.log("newProducers", newProducers);
-      for (const producerId of newProducers) {
-        await consume(producerId, device.rtpCapabilities);
-        consumedProducersRef.current.add(producerId);
+    socket.emit(
+      "getRoomProducersWithUsers",
+      {},
+      async (producerList: { producerId: string; userId: string }[]) => {
+        const newProducers = producerList.filter(
+          (p) => !consumedProducersRef.current.has(p.producerId)
+        );
+        for (const { producerId, userId } of newProducers) {
+          await consume(
+            producerId,
+            device.rtpCapabilities,
+            (stream: MediaStream) => {
+              setRemoteStreamsWithUsers((prev) => [
+                ...prev,
+                { stream, userId },
+              ]);
+            }
+          );
+          consumedProducersRef.current.add(producerId);
+        }
       }
-    });
+    );
   };
 
   return (
@@ -80,11 +94,11 @@ const RoomPage = () => {
           </button>
           <div className="flex gap-4 mt-4">
             {localStream && <Player stream={localStream} name="You" you />}
-            {remoteStreams.map((stream, i) => (
+            {remoteStreamsWithUsers.map(({ stream, userId }, i) => (
               <Player
                 key={i}
                 stream={stream}
-                name={`User ${i + 1}`}
+                name={`User ${userId}`}
                 you={false}
               />
             ))}

@@ -120,7 +120,11 @@ export function useMediasoupClient() {
 
   // Consume remote media
   const consume = useCallback(
-    async (producerId: string, rtpCapabilities: RtpCapabilities) => {
+    async (
+      producerId: string,
+      rtpCapabilities: RtpCapabilities,
+      onStream?: (stream: MediaStream) => void
+    ) => {
       if (!socket || !recvTransportRef.current) return;
       socket.emit(
         "consume",
@@ -143,7 +147,8 @@ export function useMediasoupClient() {
               rtpParameters: res.rtpParameters as RtpParameters,
             });
             const stream = new MediaStream([consumer.track]);
-            setRemoteStreams((prev) => [...prev, stream]);
+            if (onStream) onStream(stream);
+            else setRemoteStreams((prev) => [...prev, stream]);
           }
         }
       );
