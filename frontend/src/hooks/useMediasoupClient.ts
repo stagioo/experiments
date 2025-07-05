@@ -122,11 +122,6 @@ export function useMediasoupClient() {
   const consume = useCallback(
     async (producerId: string, rtpCapabilities: RtpCapabilities) => {
       if (!socket || !recvTransportRef.current) return;
-      console.log({
-        transportId: recvTransportRef.current.id,
-        producerId,
-        rtpCapabilities,
-      });
       socket.emit(
         "consume",
         {

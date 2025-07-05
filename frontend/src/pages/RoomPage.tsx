@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useMediasoupClient } from "../hooks/useMediasoupClient";
 import MediaControls from "../components/MediaControls";
+import Player from "../components/Player";
 
 const RoomPage = () => {
   const [roomId, setRoomId] = useState("");
   const [joined, setJoined] = useState(false);
+  const consumedProducersRef = useRef<Set<string>>(new Set());
   const {
     joinRoom,
     loadDevice,
@@ -23,7 +25,6 @@ const RoomPage = () => {
     if (!roomId || !socket) return;
     await joinRoom(roomId);
     setJoined(true);
-    // Fetch router RTP capabilities from backend
     const rtpCapabilities = await new Promise((resolve) => {
       socket.emit("getRouterRtpCapabilities", {}, resolve);
     });
@@ -36,14 +37,15 @@ const RoomPage = () => {
 
   const handleProduce = async () => {
     await produce();
-    if (!socket) return;
-    if (!device?.rtpCapabilities) {
-      console.error("Device RTP capabilities not loaded!");
-      return;
-    }
+    if (!socket || !device?.rtpCapabilities) return;
     socket.emit("getRoomProducers", {}, async (producerIds: string[]) => {
-      for (const producerId of producerIds) {
+      const newProducers = producerIds.filter(
+        (id) => !consumedProducersRef.current.has(id)
+      );
+      console.log("newProducers", newProducers);
+      for (const producerId of newProducers) {
         await consume(producerId, device.rtpCapabilities);
+        consumedProducersRef.current.add(producerId);
       }
     });
   };
@@ -60,7 +62,7 @@ const RoomPage = () => {
             onChange={(e) => setRoomId(e.target.value)}
           />
           <button
-            className="bg-blue-500 text-white px-4 py-2 rounded"
+            className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             onClick={handleJoin}
             disabled={!connected || !roomId}
           >
@@ -77,34 +79,19 @@ const RoomPage = () => {
             Start Camera & Produce
           </button>
           <div className="flex gap-4 mt-4">
-            {localStream && (
-              <video
-                className="border"
-                width={240}
-                height={180}
-                autoPlay
-                muted
-                ref={(video) => {
-                  if (video && localStream) video.srcObject = localStream;
-                }}
-              />
-            )}
+            {localStream && <Player stream={localStream} name="You" you />}
             {remoteStreams.map((stream, i) => (
-              <video
+              <Player
                 key={i}
-                className="border"
-                width={240}
-                height={180}
-                autoPlay
-                ref={(video) => {
-                  if (video) video.srcObject = stream;
-                }}
+                stream={stream}
+                name={`User ${i + 1}`}
+                you={false}
               />
             ))}
           </div>
-          {joined && localStream && <MediaControls localStream={localStream} />}
         </>
       )}
+      {joined && localStream && <MediaControls localStream={localStream} />}
     </div>
   );
 };
