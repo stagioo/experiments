@@ -39,7 +39,6 @@ const socketIoConnection = async (io: SocketIOServer) => {
         const room = new Room(roomId, router);
         rooms.set(roomId, room);
       }
-      // Add to db if not exists
       await db.read();
       if (!db.data!.rooms.find((r) => r.id === roomId)) {
         db.data!.rooms.push({ id: roomId, users: [] });
@@ -60,6 +59,16 @@ const socketIoConnection = async (io: SocketIOServer) => {
       }
       currentRoom = room;
       room.addPeer(peerId);
+
+      console.log(`[Room ${roomId}] Peer ${peerId} joined`);
+      console.log(
+        `[Room ${roomId}] Current peers:`,
+        Array.from(room.peers.keys())
+      );
+
+      // Join the socket.io room
+      socket.join(roomId);
+
       // Add user to db
       await db.read();
       let dbRoom = db.data!.rooms.find((r) => r.id === roomId);
@@ -102,6 +111,29 @@ const socketIoConnection = async (io: SocketIOServer) => {
         if (!transport) return callback({ error: "Transport not found" });
         const producer = await transport.produce({ kind, rtpParameters });
         peer?.producers.push(producer);
+
+        console.log(
+          `[Room ${currentRoom.id}] Peer ${peerId} produced ${kind}`,
+          {
+            producerId: producer.id,
+            transportId,
+          }
+        );
+
+        // Notify all other users in the room about the new producer
+        socket.to(currentRoom.id).emit("newProducer", {
+          producerId: producer.id,
+          userId: peerId,
+        });
+
+        console.log(
+          `[Room ${currentRoom.id}] Notified other peers about new producer`,
+          {
+            producerId: producer.id,
+            userId: peerId,
+          }
+        );
+
         callback({ id: producer.id });
       }
     );
@@ -198,6 +230,28 @@ const socketIoConnection = async (io: SocketIOServer) => {
         .filter((p) => p.id !== peerId)
         .flatMap((p) => p.producers.map((pr) => pr.id));
       callback(producerIds);
+    });
+
+    socket.on("getRoomProducersWithUsers", (data, callback) => {
+      if (!currentRoom) return callback([]);
+      // Return all producer IDs with their user IDs except the current user's
+      const producersWithUsers = Array.from(currentRoom.peers.values())
+        .filter((p) => p.id !== peerId)
+        .flatMap((p) =>
+          p.producers.map((pr) => ({
+            producerId: pr.id,
+            userId: p.id,
+          }))
+        );
+
+      console.log(
+        `[Room ${currentRoom.id}] Getting producers for peer ${peerId}`,
+        {
+          producers: producersWithUsers,
+        }
+      );
+
+      callback(producersWithUsers);
     });
 
     socket.on("disconnect", async () => {

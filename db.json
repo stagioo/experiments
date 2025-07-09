@@ -1,24 +1,15 @@
 {
   "users": [
     {
-      "id": "e1ZCxVueM-H_fQzHAAAg",
-      "name": "e1ZCxVueM-H_fQzHAAAg"
-    },
-    {
-      "id": "mX3IWPvHY_JixCyBAAAv",
-      "name": "mX3IWPvHY_JixCyBAAAv"
-    },
-    {
-      "id": "7f_BIfuFK42yLiHiAAAs",
-      "name": "7f_BIfuFK42yLiHiAAAs"
+      "id": "A-SnIqpIUoWVXdBVAAAt",
+      "name": "A-SnIqpIUoWVXdBVAAAt"
     }
   ],
   "rooms": [
     {
-      "id": "1111",
+      "id": "username",
       "users": [
-        "mX3IWPvHY_JixCyBAAAv",
-        "7f_BIfuFK42yLiHiAAAs"
+        "A-SnIqpIUoWVXdBVAAAt"
       ]
     }
   ]

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useMediasoupClient } from "../hooks/useMediasoupClient";
 import MediaControls from "../components/MediaControls";
 import Player from "../components/Player";
@@ -23,35 +23,101 @@ const RoomPage = () => {
     device,
   } = useMediasoupClient();
 
+  // Handle new producer notifications
+  useEffect(() => {
+    if (!socket || !device?.rtpCapabilities || !joined) return;
+
+    const handleNewProducer = async ({
+      producerId,
+      userId,
+    }: {
+      producerId: string;
+      userId: string;
+    }) => {
+      console.log("Received newProducer event:", { producerId, userId });
+
+      if (consumedProducersRef.current.has(producerId)) {
+        console.log("Producer already consumed, skipping:", producerId);
+        return;
+      }
+
+      await consume(
+        producerId,
+        device.rtpCapabilities,
+        (stream: MediaStream) => {
+          console.log("Successfully consumed producer:", {
+            producerId,
+            userId,
+          });
+          setRemoteStreamsWithUsers((prev) => [...prev, { stream, userId }]);
+        }
+      );
+      consumedProducersRef.current.add(producerId);
+    };
+
+    console.log("Setting up newProducer listener");
+    socket.on("newProducer", handleNewProducer);
+
+    return () => {
+      console.log("Cleaning up newProducer listener");
+      socket.off("newProducer", handleNewProducer);
+    };
+  }, [socket, device?.rtpCapabilities, joined, consume]);
+
   const handleJoin = async () => {
     if (!roomId || !socket) return;
+    console.log("Joining room:", roomId);
+
     await joinRoom(roomId);
     setJoined(true);
+    console.log("Successfully joined room");
+
+    // Get router RTP capabilities
     const rtpCapabilities = await new Promise((resolve) => {
       socket.emit("getRouterRtpCapabilities", {}, resolve);
     });
+    console.log("Got router RTP capabilities");
+
+    // Load device and create transports
     await loadDevice(
       rtpCapabilities as import("mediasoup-client/types").RtpCapabilities
     );
-    await createSendTransport();
-    await createRecvTransport();
-  };
+    console.log("Device loaded");
 
-  const handleProduce = async () => {
-    await produce();
-    if (!socket || !device?.rtpCapabilities) return;
+    await createSendTransport();
+    console.log("Send transport created");
+
+    await createRecvTransport();
+    console.log("Receive transport created");
+
+    // Consume existing producers in the room
+    console.log("Requesting existing producers");
     socket.emit(
       "getRoomProducersWithUsers",
       {},
       async (producerList: { producerId: string; userId: string }[]) => {
-        const newProducers = producerList.filter(
-          (p) => !consumedProducersRef.current.has(p.producerId)
-        );
-        for (const { producerId, userId } of newProducers) {
+        console.log("Got existing producers:", producerList);
+
+        if (!device?.rtpCapabilities) {
+          console.warn("Device not ready for consuming");
+          return;
+        }
+
+        for (const { producerId, userId } of producerList) {
+          if (consumedProducersRef.current.has(producerId)) {
+            console.log("Producer already consumed, skipping:", producerId);
+            continue;
+          }
+
+          console.log("Consuming producer:", { producerId, userId });
           await consume(
             producerId,
             device.rtpCapabilities,
             (stream: MediaStream) => {
+              console.log("Successfully consumed producer:", {
+                producerId,
+                userId,
+              });
               setRemoteStreamsWithUsers((prev) => [
                 ...prev,
                 { stream, userId },
@@ -63,6 +129,25 @@ const RoomPage = () => {
       }
     );
   };
+
+  const handleProduce = async () => {
+    console.log("Starting media production");
+    await produce();
+    console.log("Media production started");
+
+    console.log("Media production completed successfully");
+  };
+
+  useEffect(() => {
+    return () => {
+      if (localStream) {
+        localStream.getTracks().forEach((track) => track.stop());
+      }
+      remoteStreamsWithUsers.forEach(({ stream }) => {
+        stream.getTracks().forEach((track) => track.stop());
+      });
+    };
+  }, [localStream, remoteStreamsWithUsers]);
 
   return (
     <div className="flex flex-col items-center gap-4 mt-8">
