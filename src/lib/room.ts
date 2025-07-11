@@ -18,7 +18,10 @@ export interface RoomPeer {
 
 export class Room {
   public peers: Map<string, RoomPeer> = new Map();
-  constructor(public id: string, public router: Router) {}
+  constructor(
+    public id: string,
+    public router: Router,
+  ) {}
 
   addPeer(peerId: string) {
     if (!this.peers.has(peerId)) {
@@ -32,6 +35,16 @@ export class Room {
       });
     }
     return this.peers.get(peerId)!;
+  }
+
+  getProducers() {
+    return Array.from(this.peers.values()).flatMap((peer) =>
+      peer.producers.map((producer) => ({
+        userId: peer.id,
+        producerId: producer.id,
+        kind: producer.kind,
+      })),
+    );
   }
 
   getPeer(peerId: string) {

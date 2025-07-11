@@ -63,7 +63,7 @@ const socketIoConnection = async (io: SocketIOServer) => {
       console.log(`[Room ${roomId}] Peer ${peerId} joined`);
       console.log(
         `[Room ${roomId}] Current peers:`,
-        Array.from(room.peers.keys())
+        Array.from(room.peers.keys()),
       );
 
       // Join the socket.io room
@@ -80,7 +80,9 @@ const socketIoConnection = async (io: SocketIOServer) => {
         db.data!.users.push({ id: peerId, name: peerId });
         await db.write();
       }
-      callback({ joined: true });
+
+      const producers = currentRoom.getProducers();
+      callback({ producers });
     });
 
     socket.on("createWebRtcTransport", async (data, callback) => {
@@ -99,7 +101,7 @@ const socketIoConnection = async (io: SocketIOServer) => {
         if (!transport) return callback({ error: "Transport not found" });
         await transport.connect({ dtlsParameters });
         callback({ connected: true });
-      }
+      },
     );
 
     socket.on(
@@ -117,7 +119,7 @@ const socketIoConnection = async (io: SocketIOServer) => {
           {
             producerId: producer.id,
             transportId,
-          }
+          },
         );
 
         // Notify all other users in the room about the new producer
@@ -133,18 +135,18 @@ const socketIoConnection = async (io: SocketIOServer) => {
             producerId: producer.id,
             userId: peerId,
             kind,
-          }
+          },
         );
 
         callback({ id: producer.id });
-      }
+      },
     );
 
     socket.on(
       "produceData",
       async (
         { transportId, sctpStreamParameters, label, protocol },
-        callback
+        callback,
       ) => {
         if (!currentRoom) return callback({ error: "No room joined" });
         const peer = currentRoom.getPeer(peerId);
@@ -157,7 +159,7 @@ const socketIoConnection = async (io: SocketIOServer) => {
         });
         peer?.dataProducers.push(dataProducer);
         callback({ id: dataProducer.id });
-      }
+      },
     );
 
     socket.on(
@@ -168,10 +170,10 @@ const socketIoConnection = async (io: SocketIOServer) => {
         const transport = peer?.transports.find((t) => t.id === transportId);
         if (!transport) return callback({ error: "Transport not found" });
         const producerPeer = Array.from(currentRoom.peers.values()).find((p) =>
-          p.producers.some((pr) => pr.id === producerId)
+          p.producers.some((pr) => pr.id === producerId),
         );
         const producer = producerPeer?.producers.find(
-          (pr) => pr.id === producerId
+          (pr) => pr.id === producerId,
         );
         if (!producer) return callback({ error: "Producer not found" });
         if (!currentRoom.router.canConsume({ producerId, rtpCapabilities })) {
@@ -191,7 +193,7 @@ const socketIoConnection = async (io: SocketIOServer) => {
           type: consumer.type,
           producerPaused: consumer.producerPaused,
         });
-      }
+      },
     );
 
     socket.on(
@@ -202,10 +204,10 @@ const socketIoConnection = async (io: SocketIOServer) => {
         const transport = peer?.transports.find((t) => t.id === transportId);
         if (!transport) return callback({ error: "Transport not found" });
         const dataProducerPeer = Array.from(currentRoom.peers.values()).find(
-          (p) => p.dataProducers.some((dp) => dp.id === dataProducerId)
+          (p) => p.dataProducers.some((dp) => dp.id === dataProducerId),
         );
         const dataProducer = dataProducerPeer?.dataProducers.find(
-          (dp) => dp.id === dataProducerId
+          (dp) => dp.id === dataProducerId,
         );
         if (!dataProducer) return callback({ error: "DataProducer not found" });
         const dataConsumer = await transport.consumeData({ dataProducerId });
@@ -217,7 +219,7 @@ const socketIoConnection = async (io: SocketIOServer) => {
           label: dataConsumer.label,
           protocol: dataConsumer.protocol,
         });
-      }
+      },
     );
 
     socket.on("getRouterRtpCapabilities", (data, callback) => {
@@ -243,14 +245,14 @@ const socketIoConnection = async (io: SocketIOServer) => {
           p.producers.map((pr) => ({
             producerId: pr.id,
             userId: p.id,
-          }))
+          })),
         );
 
       console.log(
         `[Room ${currentRoom.id}] Getting producers for peer ${peerId}`,
         {
           producers: producersWithUsers,
-        }
+        },
       );
 
       callback(producersWithUsers);
@@ -268,7 +270,7 @@ const socketIoConnection = async (io: SocketIOServer) => {
         }
         // Remove user from db users if not in any room
         const stillInRoom = db.data!.rooms.some((r) =>
-          r.users.includes(peerId)
+          r.users.includes(peerId),
         );
         if (!stillInRoom) {
           db.data!.users = db.data!.users.filter((u) => u.id !== peerId);
@@ -279,7 +281,7 @@ const socketIoConnection = async (io: SocketIOServer) => {
           rooms.delete(currentRoom.id);
           // Remove from db
           db.data!.rooms = db.data!.rooms.filter(
-            (r) => r.id !== currentRoom!.id
+            (r) => r.id !== currentRoom!.id,
           );
           await db.write();
         }
