@@ -3,13 +3,17 @@ import { useMediasoupClient } from "../hooks/useMediasoupClient";
 import MediaControls from "../components/MediaControls";
 import Player from "../components/Player";
 
+interface RemoteStream {
+  stream: MediaStream;
+  userId: string;
+  kind: "audio" | "video";
+}
+
 const RoomPage = () => {
   const [roomId, setRoomId] = useState("");
   const [joined, setJoined] = useState(false);
   const consumedProducersRef = useRef<Set<string>>(new Set());
-  const [remoteStreamsWithUsers, setRemoteStreamsWithUsers] = useState<
-    { stream: MediaStream; userId: string }[]
-  >([]);
+  const [remoteStreams, setRemoteStreams] = useState<RemoteStream[]>([]);
   const {
     joinRoom,
     loadDevice,
@@ -30,11 +34,13 @@ const RoomPage = () => {
     const handleNewProducer = async ({
       producerId,
       userId,
+      kind,
     }: {
       producerId: string;
       userId: string;
+      kind: "audio" | "video";
     }) => {
-      console.log("Received newProducer event:", { producerId, userId });
+      console.log("Received newProducer event:", { producerId, userId, kind });
 
       if (consumedProducersRef.current.has(producerId)) {
         console.log("Producer already consumed, skipping:", producerId);
@@ -48,8 +54,9 @@ const RoomPage = () => {
           console.log("Successfully consumed producer:", {
             producerId,
             userId,
+            kind,
           });
-          setRemoteStreamsWithUsers((prev) => [...prev, { stream, userId }]);
+          setRemoteStreams((prev) => [...prev, { stream, userId, kind }]);
         }
       );
       consumedProducersRef.current.add(producerId);
@@ -63,6 +70,17 @@ const RoomPage = () => {
       socket.off("newProducer", handleNewProducer);
     };
   }, [socket, device?.rtpCapabilities, joined, consume]);
+
+  // Group streams by user
+  const remoteStreamsByUser = remoteStreams.reduce<
+    Record<string, { video?: MediaStream; audio?: MediaStream }>
+  >((acc, { stream, userId, kind }) => {
+    if (!acc[userId]) {
+      acc[userId] = {};
+    }
+    acc[userId][kind] = stream;
+    return acc;
+  }, {});
 
   const handleJoin = async () => {
     if (!roomId || !socket) return;
@@ -118,9 +136,9 @@ const RoomPage = () => {
                 producerId,
                 userId,
               });
-              setRemoteStreamsWithUsers((prev) => [
+              setRemoteStreams((prev) => [
                 ...prev,
-                { stream, userId },
+                { stream, userId, kind: "video" }, // Assuming all consumed are video for now
               ]);
             }
           );
@@ -143,11 +161,11 @@ const RoomPage = () => {
       if (localStream) {
         localStream.getTracks().forEach((track) => track.stop());
       }
-      remoteStreamsWithUsers.forEach(({ stream }) => {
+      remoteStreams.forEach(({ stream }) => {
         stream.getTracks().forEach((track) => track.stop());
       });
     };
-  }, [localStream, remoteStreamsWithUsers]);
+  }, [localStream, remoteStreams]);
 
   return (
     <div className="flex flex-col items-center gap-4 mt-8">
@@ -173,19 +191,22 @@ const RoomPage = () => {
           <button
             className="bg-green-500 text-white px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             onClick={handleProduce}
-            // disabled={!device?.rtpCapabilities}
           >
             Start Camera & Produce
           </button>
           <div className="flex gap-4 mt-4">
             {localStream && <Player stream={localStream} name="You" you />}
-            {remoteStreamsWithUsers.map(({ stream, userId }, i) => (
-              <Player
-                key={i}
-                stream={stream}
-                name={`User ${userId}`}
-                you={false}
-              />
+            {Object.entries(remoteStreamsByUser).map(([userId, streams]) => (
+              <div key={userId}>
+                {streams.video && (
+                  <Player
+                    stream={streams.video}
+                    name={`User ${userId}`}
+                    you={false}
+                    audioStream={streams.audio}
+                  />
+                )}
+              </div>
             ))}
           </div>
         </>

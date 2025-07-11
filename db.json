@@ -3,6 +3,14 @@
     {
       "id": "A-SnIqpIUoWVXdBVAAAt",
       "name": "A-SnIqpIUoWVXdBVAAAt"
+    },
+    {
+      "id": "qd389rXIN7oLGu0-AAAD",
+      "name": "qd389rXIN7oLGu0-AAAD"
+    },
+    {
+      "id": "DQMVzTgr-01YHCJ5AAAH",
+      "name": "DQMVzTgr-01YHCJ5AAAH"
     }
   ],
   "rooms": [
@@ -10,6 +18,13 @@
       "id": "username",
       "users": [
         "A-SnIqpIUoWVXdBVAAAt"
+      ]
+    },
+    {
+      "id": "1234",
+      "users": [
+        "qd389rXIN7oLGu0-AAAD",
+        "DQMVzTgr-01YHCJ5AAAH"
       ]
     }
   ]

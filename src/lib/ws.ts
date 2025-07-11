@@ -124,6 +124,7 @@ const socketIoConnection = async (io: SocketIOServer) => {
         socket.to(currentRoom.id).emit("newProducer", {
           producerId: producer.id,
           userId: peerId,
+          kind,
         });
 
         console.log(
@@ -131,6 +132,7 @@ const socketIoConnection = async (io: SocketIOServer) => {
           {
             producerId: producer.id,
             userId: peerId,
+            kind,
           }
         );
 
