@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useMediasoupClient } from "../hooks/useMediasoupClient";
 import MediaControls from "../components/MediaControls";
 import Player from "../components/Player";
@@ -10,10 +11,8 @@ interface RemoteStream {
 }
 
 const RoomPage = () => {
-  const [roomId, setRoomId] = useState("");
-  const [joined, setJoined] = useState(false);
-  const consumedProducersRef = useRef<Set<string>>(new Set());
-  const [remoteStreams, setRemoteStreams] = useState<RemoteStream[]>([]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const {
     joinRoom,
     loadDevice,
@@ -26,6 +25,20 @@ const RoomPage = () => {
     consume,
     device,
   } = useMediasoupClient();
+
+  const [roomId, setRoomId] = useState(searchParams.get("room") || "");
+  const [joined, setJoined] = useState(false);
+  const consumedProducersRef = useRef<Set<string>>(new Set());
+  const [remoteStreams, setRemoteStreams] = useState<RemoteStream[]>([]);
+
+  // Auto-join room if roomId is in URL
+  useEffect(() => {
+    const roomFromUrl = searchParams.get("room");
+    if (roomFromUrl && !joined && connected) {
+      setRoomId(roomFromUrl);
+      handleJoin();
+    }
+  }, [searchParams, connected]);
 
   // Handle new producer notifications
   useEffect(() => {
@@ -84,68 +97,32 @@ const RoomPage = () => {
 
   const handleJoin = async () => {
     if (!roomId || !socket) return;
-    console.log("Joining room:", roomId);
 
-    await joinRoom(roomId);
-    setJoined(true);
-    console.log("Successfully joined room");
+    try {
+      await joinRoom(roomId);
+      setJoined(true);
+      // Update URL with room ID
+      setSearchParams({ room: roomId });
 
-    // Get router RTP capabilities
-    const rtpCapabilities = await new Promise((resolve) => {
-      socket.emit("getRouterRtpCapabilities", {}, resolve);
-    });
-    console.log("Got router RTP capabilities");
+      // Get router RTP capabilities
+      const rtpCapabilities = await new Promise((resolve) => {
+        socket.emit("getRouterRtpCapabilities", {}, resolve);
+      });
 
-    // Load device and create transports
-    await loadDevice(
-      rtpCapabilities as import("mediasoup-client/types").RtpCapabilities
-    );
-    console.log("Device loaded");
+      // Load device and create transports
+      await loadDevice(
+        rtpCapabilities as import("mediasoup-client/types").RtpCapabilities
+      );
+      await createSendTransport();
+      await createRecvTransport();
 
-    await createSendTransport();
-    console.log("Send transport created");
-
-    await createRecvTransport();
-    console.log("Receive transport created");
-
-    // Consume existing producers in the room
-    console.log("Requesting existing producers");
-    socket.emit(
-      "getRoomProducersWithUsers",
-      {},
-      async (producerList: { producerId: string; userId: string }[]) => {
-        console.log("Got existing producers:", producerList);
-
-        if (!device?.rtpCapabilities) {
-          console.warn("Device not ready for consuming");
-          return;
-        }
-
-        for (const { producerId, userId } of producerList) {
-          if (consumedProducersRef.current.has(producerId)) {
-            console.log("Producer already consumed, skipping:", producerId);
-            continue;
-          }
-
-          console.log("Consuming producer:", { producerId, userId });
-          await consume(
-            producerId,
-            device.rtpCapabilities,
-            (stream: MediaStream) => {
-              console.log("Successfully consumed producer:", {
-                producerId,
-                userId,
-              });
-              setRemoteStreams((prev) => [
-                ...prev,
-                { stream, userId, kind: "video" }, // Assuming all consumed are video for now
-              ]);
-            }
-          );
-          consumedProducersRef.current.add(producerId);
-        }
-      }
-    );
+      console.log("Successfully joined and set up room:", roomId);
+    } catch (error) {
+      console.error("Error joining room:", error);
+      setJoined(false);
+      // Remove room from URL on error
+      setSearchParams({});
+    }
   };
 
   const handleProduce = async () => {
@@ -154,6 +131,22 @@ const RoomPage = () => {
     console.log("Media production started");
 
     console.log("Media production completed successfully");
+  };
+
+  const handleLeaveRoom = () => {
+    if (localStream) {
+      localStream.getTracks().forEach((track) => track.stop());
+    }
+    remoteStreams.forEach(({ stream }) => {
+      stream.getTracks().forEach((track) => track.stop());
+    });
+    setJoined(false);
+    setRemoteStreams([]);
+    consumedProducersRef.current.clear();
+    // Remove room from URL
+    setSearchParams({});
+    // Optionally navigate to home
+    navigate("/");
   };
 
   useEffect(() => {
@@ -188,12 +181,20 @@ const RoomPage = () => {
         </div>
       ) : (
         <>
-          <button
-            className="bg-green-500 text-white px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-            onClick={handleProduce}
-          >
-            Start Camera & Produce
-          </button>
+          <div className="flex gap-2">
+            <button
+              className="bg-green-500 text-white px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              onClick={handleProduce}
+            >
+              Start Camera & Produce
+            </button>
+            <button
+              className="bg-red-500 text-white px-4 py-2 rounded"
+              onClick={handleLeaveRoom}
+            >
+              Leave Room
+            </button>
+          </div>
           <div className="flex gap-4 mt-4">
             {localStream && <Player stream={localStream} name="You" you />}
             {Object.entries(remoteStreamsByUser).map(([userId, streams]) => (

@@ -1,13 +1,17 @@
+import { Routes, Route, Navigate } from "react-router-dom";
+import { ThemeProvider } from "./components/theme-provider";
 import RoomPage from "./pages/RoomPage";
-import { ModeToggle } from "./components/theme-toggle";
+import "./App.css";
 
-const App = () => {
+function App() {
   return (
-    <>
-      <RoomPage />
-      <ModeToggle />
-    </>
+    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+      <Routes>
+        <Route path="/" element={<RoomPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </ThemeProvider>
   );
-};
+}
 
 export default App;
