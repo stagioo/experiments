@@ -15,49 +15,16 @@
     {
       "id": "fs32DcRI372yDG6yAAA7",
       "name": "fs32DcRI372yDG6yAAA7"
-    },
-    {
-      "id": "2Be7vXyl9KhvyIIzAAAD",
-      "name": "2Be7vXyl9KhvyIIzAAAD"
-    },
-    {
-      "id": "qMsOAimjI4ukKOdBAAAH",
-      "name": "qMsOAimjI4ukKOdBAAAH"
-    },
-    {
-      "id": "YM4ERoIn3QgeQkM3AAAL",
-      "name": "YM4ERoIn3QgeQkM3AAAL"
-    },
-    {
-      "id": "a004detUWGmoK5IvAAAX",
-      "name": "a004detUWGmoK5IvAAAX"
-    },
-    {
-      "id": "e21ut7ST138AxLFiAABD",
-      "name": "e21ut7ST138AxLFiAABD"
-    },
-    {
-      "id": "GbU3GmoAoDsUa_rSAACT",
-      "name": "GbU3GmoAoDsUa_rSAACT"
-    },
-    {
-      "id": "P_fIeHZ0PCTrQ6aNAACX",
-      "name": "P_fIeHZ0PCTrQ6aNAACX"
     }
   ],
   "rooms": [
     {
-      "id": "1234",
-      "users": [
-        "fs32DcRI372yDG6yAAA7"
-      ]
+      "id": "username",
+      "users": ["A-SnIqpIUoWVXdBVAAAt"]
     },
     {
-      "id": "test",
-      "users": [
-        "GbU3GmoAoDsUa_rSAACT",
-        "P_fIeHZ0PCTrQ6aNAACX"
-      ]
+      "id": "1234",
+      "users": ["fs32DcRI372yDG6yAAA7"]
     }
   ]
 }
