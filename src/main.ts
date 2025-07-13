@@ -3,12 +3,16 @@ import { Server as SocketIOServer } from "socket.io";
 import * as http from "http";
 import { socketIoConnection } from "./lib/ws";
 import cors from "cors";
+import { createWorkers } from "./lib/worker";
 
-const main = () => {
+const main = async () => {
   const app = express();
 
   // Enable CORS for Express
   app.use(cors());
+
+  // Create workers when server starts
+  await createWorkers();
 
   const server = http.createServer(app);
   const io = new SocketIOServer(server, {
