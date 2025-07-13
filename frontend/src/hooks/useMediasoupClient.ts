@@ -78,14 +78,15 @@ export function useMediasoupClient() {
   // Load mediasoup device
   const loadDevice = useCallback(async (rtpCapabilities: RtpCapabilities) => {
     try {
-      if (!deviceRef.current) {
+      let device = deviceRef.current;
+      if (!device) {
         console.log("Loading mediasoup device");
-        const device = new Device();
+        device = new Device();
         await device.load({ routerRtpCapabilities: rtpCapabilities });
         deviceRef.current = device;
         console.log("Device loaded successfully");
       }
-      return deviceRef.current;
+      return device;
     } catch (error) {
       console.error("Error loading device:", error);
       throw error;
@@ -197,19 +198,13 @@ export function useMediasoupClient() {
   }, [socket]);
 
   // Produce local media
-  const produce = useCallback(async () => {
+  const produce = useCallback(async (stream: MediaStream) => {
     if (!sendTransportRef.current) {
       console.error("Send transport not ready");
       return;
     }
 
     try {
-      console.log("Getting user media");
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: true,
-      });
-
       console.log(
         "Got user media, tracks:",
         stream.getTracks().map((t) => t.kind),
@@ -328,5 +323,6 @@ export function useMediasoupClient() {
     connected,
     socket,
     device: deviceRef.current,
+    deviceRef,
   };
 }

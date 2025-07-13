@@ -4,7 +4,7 @@ import { config } from "./config";
 import db, { initDb } from "./db";
 import { Room } from "./room";
 import { createTransport } from "./transport";
-import { createWorker } from "./worker";
+import { getMediasoupWorker } from "./worker";
 
 const AUTH_TOKEN = "demo-token";
 
@@ -16,7 +16,7 @@ initDb();
 
 const socketIoConnection = async (io: SocketIOServer) => {
   if (!mediasoupWorker) {
-    mediasoupWorker = await createWorker();
+    mediasoupWorker = getMediasoupWorker();
   }
 
   io.use((socket, next) => {
