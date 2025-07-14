@@ -3,6 +3,42 @@ import { Server as SocketIOServer } from "socket.io";
 import * as http from "http";
 import { socketIoConnection } from "./lib/ws";
 import cors from "cors";
+import { Router, Worker } from "mediasoup/node/lib/types";
+import { startMediasoup } from "./utils/startMediaSoup";
+
+// Refectoring
+//
+export async function _main() {
+  let workers: {
+    worker: Worker;
+    router: Router;
+  }[];
+
+  try {
+    workers = await startMediasoup();
+  } catch (err) {
+    console.log(err);
+    throw err;
+  }
+
+  let workerIdx = 0;
+
+  const getNextWorker = () => {
+    const worker = workers[workerIdx];
+    workerIdx++;
+    workerIdx %= workers.length;
+    return worker;
+  };
+
+  const createRoom = () => {
+    const { worker, router } = getNextWorker();
+    return { worker, router, state: {} };
+  };
+
+  // Now we should have the websoket events here for
+  // differnt things join room, close peer, destroy room,
+  // get track, send track, connect transpoart, so on...
+}
 
 const main = () => {
   const app = express();
