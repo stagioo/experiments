@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { useMediasoupClient } from "../hooks/useMediasoupClient";
 import MediaControls from "../components/MediaControls";
 import Player from "../components/Player";
+import type { Device } from "mediasoup-client";
 
 // interface RemoteStream {
 //   stream: MediaStream;
@@ -23,7 +24,7 @@ const RoomPage = () => {
     connected,
     socket,
     consume,
-    device,
+    deviceRef,
   } = useMediasoupClient();
 
   const [roomId, setRoomId] = useState(searchParams.get("room") || "");
@@ -33,15 +34,19 @@ const RoomPage = () => {
     Record<string, MediaStream>
   >({});
 
+  const localStreamRef = useRef<MediaStream | null>(null);
+
   const consumeAndAddTrack = useCallback(
     async ({
       producerId,
       userId,
       kind,
+      device,
     }: {
       producerId: string;
       userId: string;
       kind: "audio" | "video";
+      device: Device;
     }) => {
       console.log("Received newProducer event:", { producerId, userId, kind });
 
@@ -87,21 +92,18 @@ const RoomPage = () => {
         },
       );
     },
-    [consume, device],
+    [consume],
   );
-
-  // Auto-join room if roomId is in URL
-  useEffect(() => {
-    const roomFromUrl = searchParams.get("room");
-    if (roomFromUrl && !joined && connected) {
-      setRoomId(roomFromUrl);
-      handleJoin();
-    }
-  }, [searchParams, connected]);
 
   // Handle new producer notifications
   useEffect(() => {
     if (!socket || !joined) return;
+
+    const currentDevice = deviceRef.current;
+    if (!currentDevice) {
+      console.error("Device not initialized, connot consume new producer.");
+      return;
+    }
 
     const handleNewProducer = async ({
       producerId,
@@ -117,6 +119,7 @@ const RoomPage = () => {
         producerId,
         userId,
         kind,
+        device: currentDevice,
       });
     };
 
@@ -127,14 +130,21 @@ const RoomPage = () => {
       console.log("Cleaning up newProducer listener");
       socket.off("newProducer", handleNewProducer);
     };
-  }, [socket, joined, consumeAndAddTrack]);
+  }, [socket, joined, consumeAndAddTrack, deviceRef]);
 
   const handleJoin = async () => {
     if (!roomId || !socket) return;
 
     try {
+      console.log("Requesting user media for joining...");
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: true,
+      });
+
+      localStreamRef.current = stream;
+
       const { producers: existingProducers } = await joinRoom(roomId);
-      setJoined(true);
       // Update URL with room ID
       setSearchParams({ room: roomId });
 
@@ -144,11 +154,15 @@ const RoomPage = () => {
       });
 
       // Load device and create transports
-      await loadDevice(
+      const mediasoupDevice = await loadDevice(
         rtpCapabilities as import("mediasoup-client/types").RtpCapabilities,
       );
       await createSendTransport();
       await createRecvTransport();
+
+      await produce(stream);
+
+      setJoined(true);
 
       console.log(`Existing Producers;: `, existingProducers.length);
       for (const { producerId, userId, kind } of existingProducers) {
@@ -156,6 +170,7 @@ const RoomPage = () => {
           producerId,
           userId,
           kind,
+          device: mediasoupDevice,
         });
       }
 
@@ -170,7 +185,7 @@ const RoomPage = () => {
 
   const handleProduce = async () => {
     console.log("Starting media production");
-    await produce();
+    // await produce();
     console.log("Media production started");
 
     console.log("Media production completed successfully");

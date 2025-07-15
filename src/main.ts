@@ -39,12 +39,16 @@ export async function _main() {
   // differnt things join room, close peer, destroy room,
   // get track, send track, connect transpoart, so on...
 }
+import { createWorkers } from "./lib/worker";
 
-const main = () => {
+const main = async () => {
   const app = express();
 
   // Enable CORS for Express
   app.use(cors());
+
+  // Create workers when server starts
+  await createWorkers();
 
   const server = http.createServer(app);
   const io = new SocketIOServer(server, {
