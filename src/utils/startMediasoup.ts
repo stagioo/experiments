@@ -1,7 +1,7 @@
 import * as mediasoup from "mediasoup";
 import { Router, Worker } from "mediasoup/node/lib/types";
 import os from "os";
-import { config } from "../config";
+import { config } from "../lib/config";
 
 export async function startMediasoup() {
   const workers: Array<{

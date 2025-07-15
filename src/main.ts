@@ -4,7 +4,7 @@ import * as http from "http";
 import { socketIoConnection } from "./lib/ws";
 import cors from "cors";
 import { Router, Worker } from "mediasoup/node/lib/types";
-import { startMediasoup } from "./utils/startMediaSoup";
+import { startMediasoup } from "./utils/startMediasoup";
 
 // Refectoring
 //

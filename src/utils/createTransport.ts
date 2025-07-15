@@ -1,5 +1,5 @@
 import { Router, WebRtcTransport } from "mediasoup/node/lib/types";
-import { config } from "../config";
+import { config } from "../lib/config";
 
 export const transportToOptions = ({
   id,
