@@ -15,6 +15,14 @@
     {
       "id": "fs32DcRI372yDG6yAAA7",
       "name": "fs32DcRI372yDG6yAAA7"
+    },
+    {
+      "id": "TvYD_6QnZLny1fIHAAAD",
+      "name": "TvYD_6QnZLny1fIHAAAD"
+    },
+    {
+      "id": "VHab3_91X2-2v8jlAAAH",
+      "name": "VHab3_91X2-2v8jlAAAH"
     }
   ],
   "rooms": [
@@ -22,6 +30,13 @@
       "id": "1234",
       "users": [
         "fs32DcRI372yDG6yAAA7"
+      ]
+    },
+    {
+      "id": "username",
+      "users": [
+        "TvYD_6QnZLny1fIHAAAD",
+        "VHab3_91X2-2v8jlAAAH"
       ]
     }
   ]
