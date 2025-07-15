@@ -60,9 +60,9 @@ export function useMediasoupClient() {
                   console.log("------------------------");
                   resolve(response);
                 }
-              },
+              }
             );
-          },
+          }
         );
 
         console.log("Successfully joined room:", roomId);
@@ -72,7 +72,7 @@ export function useMediasoupClient() {
         throw error;
       }
     },
-    [socket, connected],
+    [socket, connected]
   );
 
   // Load mediasoup device
@@ -125,14 +125,14 @@ export function useMediasoupClient() {
                     (response: { connected: boolean; error?: string }) => {
                       if (response.error || !response.connected) {
                         errback(
-                          new Error(response.error || "Connection failed"),
+                          new Error(response.error || "Connection failed")
                         );
                       } else {
                         callback();
                       }
-                    },
+                    }
                   );
-                },
+                }
               );
 
               transport.on(
@@ -145,14 +145,14 @@ export function useMediasoupClient() {
                     (response: { id?: string; error?: string }) => {
                       if (response.error || !response.id) {
                         errback(
-                          new Error(response.error || "Production failed"),
+                          new Error(response.error || "Production failed")
                         );
                       } else {
                         callback({ id: response.id });
                       }
-                    },
+                    }
                   );
-                },
+                }
               );
 
               sendTransportRef.current = transport;
@@ -162,7 +162,7 @@ export function useMediasoupClient() {
               console.error("Error creating send transport:", error);
               reject(error);
             }
-          },
+          }
         );
       });
     } catch (error) {
@@ -187,12 +187,12 @@ export function useMediasoupClient() {
               (res: { connected: boolean }) => {
                 if (res.connected) cb();
                 else errCb(new Error("Failed to connect transport"));
-              },
+              }
             );
           });
           recvTransportRef.current = transport;
           resolve(transport);
-        },
+        }
       );
     });
   }, [socket]);
@@ -207,7 +207,7 @@ export function useMediasoupClient() {
     try {
       console.log(
         "Got user media, tracks:",
-        stream.getTracks().map((t) => t.kind),
+        stream.getTracks().map((t) => t.kind)
       );
       setLocalStream(stream);
 
@@ -218,7 +218,7 @@ export function useMediasoupClient() {
           const producer = await sendTransportRef.current.produce({ track });
           console.log(
             `Successfully produced ${track.kind} track:`,
-            producer.id,
+            producer.id
           );
           producers.push(producer);
         } catch (error) {
@@ -246,7 +246,7 @@ export function useMediasoupClient() {
     async (
       producerId: string,
       rtpCapabilities: RtpCapabilities,
-      onStream?: (stream: MediaStream) => void,
+      onStream?: (stream: MediaStream) => void
     ) => {
       if (!socket || !recvTransportRef.current) {
         console.error("Cannot consume - transport or socket not ready");
@@ -302,13 +302,13 @@ export function useMediasoupClient() {
             } catch (error) {
               console.error("Error while consuming:", error);
             }
-          },
+          }
         );
       } catch (error) {
         console.error("Error in consume function:", error);
       }
     },
-    [socket],
+    [socket]
   );
 
   return {
@@ -319,6 +319,7 @@ export function useMediasoupClient() {
     produce,
     consume,
     localStream,
+    setLocalStream,
     remoteStreams,
     connected,
     socket,

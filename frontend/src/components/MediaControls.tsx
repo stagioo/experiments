@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { Button } from "./ui/button";
 
 interface MediaControlsProps {
   localStream: MediaStream | null;
@@ -32,23 +33,16 @@ const MediaControls = ({ localStream }: MediaControlsProps) => {
   };
 
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 flex gap-4 bg-white/80 rounded-lg shadow-lg px-6 py-3 z-50">
-      <button
-        className={`px-4 py-2 rounded ${
-          isCameraOn ? "bg-green-600" : "bg-gray-400"
-        } text-white font-semibold`}
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 flex gap-4 rounded-lg  z-50">
+      <Button
+        variant={isCameraOn ? "default" : "outline"}
         onClick={toggleCamera}
       >
         {isCameraOn ? "Turn Camera Off" : "Turn Camera On"}
-      </button>
-      <button
-        className={`px-4 py-2 rounded ${
-          isMicOn ? "bg-green-600" : "bg-gray-400"
-        } text-white font-semibold`}
-        onClick={toggleMic}
-      >
+      </Button>
+      <Button variant={isMicOn ? "default" : "outline"} onClick={toggleMic}>
         {isMicOn ? "Mute Mic" : "Unmute Mic"}
-      </button>
+      </Button>
     </div>
   );
 };

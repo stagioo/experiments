@@ -4,16 +4,12 @@ import { useMediasoupClient } from "../hooks/useMediasoupClient";
 import MediaControls from "../components/MediaControls";
 import Player from "../components/Player";
 import type { Device } from "mediasoup-client";
-
-// interface RemoteStream {
-//   stream: MediaStream;
-//   userId: string;
-//   kind: "audio" | "video";
-// }
+import { Button } from "../components/ui/button";
 
 const RoomPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+
   const {
     joinRoom,
     loadDevice,
@@ -21,6 +17,7 @@ const RoomPage = () => {
     createRecvTransport,
     produce,
     localStream,
+    setLocalStream, // Make sure this exists in the hook
     connected,
     socket,
     consume,
@@ -48,33 +45,14 @@ const RoomPage = () => {
       kind: "audio" | "video";
       device: Device;
     }) => {
-      console.log("Received newProducer event:", { producerId, userId, kind });
-
-      if (consumedProducersRef.current.has(producerId)) {
-        console.log("Producer already consumed, skipping:", producerId);
-        return;
-      }
+      if (consumedProducersRef.current.has(producerId)) return;
 
       await consume(
         producerId,
         device.rtpCapabilities,
         (stream: MediaStream) => {
-          console.log("Successfully consumed producer:", {
-            producerId,
-            userId,
-            kind,
-          });
-
           consumedProducersRef.current.add(producerId);
-
-          //
-          // we have to check if the stream for the user already exists
-          // and then we will add new tracks to this stream if it exists
-          // else we will create a new stream (!This is important)
-          //
-
           const newTrack = stream.getTracks()[0];
-          console.log(`Adding ${kind} track from user ${userId}`);
 
           setRemoteStreams((prevStreams) => {
             const newStreams = { ...prevStreams };
@@ -89,32 +67,30 @@ const RoomPage = () => {
 
             return newStreams;
           });
-        },
+        }
       );
     },
-    [consume],
+    [consume]
   );
 
-  // Handle new producer notifications
+  const handleUserLeft = ({ userId }: { userId: string }) => {
+    setRemoteStreams((prevStreams) => {
+      const newStreams = { ...prevStreams };
+      if (newStreams[userId]) {
+        newStreams[userId].getTracks().forEach((track) => track.stop());
+        delete newStreams[userId];
+      }
+      return newStreams;
+    });
+  };
+
   useEffect(() => {
     if (!socket || !joined) return;
 
     const currentDevice = deviceRef.current;
-    if (!currentDevice) {
-      console.error("Device not initialized, connot consume new producer.");
-      return;
-    }
+    if (!currentDevice) return;
 
-    const handleNewProducer = async ({
-      producerId,
-      userId,
-      kind,
-    }: {
-      producerId: string;
-      userId: string;
-      kind: "audio" | "video";
-    }) => {
-      console.log("Received newProducer event: ", { producerId, userId, kind });
+    const handleNewProducer = async ({ producerId, userId, kind }: any) => {
       await consumeAndAddTrack({
         producerId,
         userId,
@@ -123,48 +99,39 @@ const RoomPage = () => {
       });
     };
 
-    console.log("Setting up newProducer listener");
     socket.on("newProducer", handleNewProducer);
+    socket.on("userLeft", handleUserLeft);
 
     return () => {
-      console.log("Cleaning up newProducer listener");
       socket.off("newProducer", handleNewProducer);
+      socket.off("userLeft", handleUserLeft);
     };
   }, [socket, joined, consumeAndAddTrack, deviceRef]);
 
   const handleJoin = async () => {
     if (!roomId || !socket) return;
-
     try {
-      console.log("Requesting user media for joining...");
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
         video: true,
       });
-
       localStreamRef.current = stream;
+      setLocalStream?.(stream); // Ensure hook exposes this
 
       const { producers: existingProducers } = await joinRoom(roomId);
-      // Update URL with room ID
       setSearchParams({ room: roomId });
 
-      // Get router RTP capabilities
       const rtpCapabilities = await new Promise((resolve) => {
         socket.emit("getRouterRtpCapabilities", {}, resolve);
       });
 
-      // Load device and create transports
-      const mediasoupDevice = await loadDevice(
-        rtpCapabilities as import("mediasoup-client/types").RtpCapabilities,
-      );
+      const mediasoupDevice = await loadDevice(rtpCapabilities as any);
       await createSendTransport();
       await createRecvTransport();
-
       await produce(stream);
 
       setJoined(true);
 
-      console.log(`Existing Producers;: `, existingProducers.length);
       for (const { producerId, userId, kind } of existingProducers) {
         await consumeAndAddTrack({
           producerId,
@@ -173,57 +140,25 @@ const RoomPage = () => {
           device: mediasoupDevice,
         });
       }
-
-      console.log("Successfully joined and set up room:", roomId);
     } catch (error) {
       console.error("Error joining room:", error);
       setJoined(false);
-      // Remove room from URL on error
       setSearchParams({});
     }
   };
 
-  const handleProduce = async () => {
-    console.log("Starting media production");
-    // await produce();
-    console.log("Media production started");
-
-    console.log("Media production completed successfully");
-  };
-
   const handleLeaveRoom = () => {
-    if (localStream) {
-      localStream.getTracks().forEach((track) => track.stop());
-    }
-    Object.values(remoteStreams).forEach((stream) => {
-      stream.getTracks().forEach((track) => track.stop());
-    });
+    if (!socket) return;
+
+    socket.emit("leaveRoom");
     setJoined(false);
-    setRemoteStreams({});
-    consumedProducersRef.current.clear();
-    // Remove room from URL
     setSearchParams({});
-    // Optionally navigate to home
+    window.location.reload();
     navigate("/");
   };
 
-  // useEffect(() => {
-  //   console.log("Remote Stream:: ", remoteStreams);
-  //   console.log("Local Strem:: ", localStream);
-
-  //   return () => {
-  //     if (localStream) {
-  //       localStream.getTracks().forEach((track) => track.stop());
-  //     }
-  //     // remoteStreams.forEach(({ stream }) => {
-  //     //   stream.getTracks().forEach((track) => track.stop());
-  //     // });
-  //   };
-  // }, [localStream, remoteStreams]);
-
   return (
     <div className="flex flex-col items-center gap-4 mt-8">
-      <h1 className="text-2xl font-bold">Mediasoup Room Test</h1>
       {!joined ? (
         <div className="flex flex-col gap-2">
           <input
@@ -232,31 +167,24 @@ const RoomPage = () => {
             value={roomId}
             onChange={(e) => setRoomId(e.target.value)}
           />
-          <button
-            className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-            onClick={handleJoin}
-            disabled={!connected || !roomId}
-          >
+          <Button onClick={handleJoin} disabled={!connected || !roomId}>
             Join Room
-          </button>
+          </Button>
         </div>
       ) : (
         <>
           <div className="flex gap-2">
-            <button
-              className="bg-green-500 text-white px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              onClick={handleProduce}
-            >
-              Start Camera & Produce
-            </button>
-            <button
-              className="bg-red-500 text-white px-4 py-2 rounded"
-              onClick={handleLeaveRoom}
-            >
+            <Button variant="destructive" onClick={handleLeaveRoom}>
               Leave Room
-            </button>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => console.log({ remoteStreams, socket })}
+            >
+              Debug
+            </Button>
           </div>
-          <div className="flex gap-4 mt-4">
+          <div className="grid grid-cols-2 gap-4 mt-4">
             {localStream && <Player stream={localStream} name="You" you />}
             {Object.entries(remoteStreams).map(([userId, stream]) => (
               <Player

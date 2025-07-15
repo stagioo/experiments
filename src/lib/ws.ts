@@ -222,6 +222,34 @@ const socketIoConnection = async (io: SocketIOServer) => {
       }
     );
 
+    const cleanupPeer = async () => {
+      if (!currentRoom) return;
+
+      currentRoom.removePeer(peerId);
+      socket.to(currentRoom.id).emit("userLeft", { userId: peerId });
+
+      await db.read();
+      const dbRoom = db.data!.rooms.find((r) => r.id === currentRoom!.id);
+      if (dbRoom) {
+        dbRoom.users = dbRoom.users.filter((u) => u !== peerId);
+        await db.write();
+      }
+
+      const stillInRoom = db.data!.rooms.some((r) => r.users.includes(peerId));
+      if (!stillInRoom) {
+        db.data!.users = db.data!.users.filter((u) => u.id !== peerId);
+        await db.write();
+      }
+
+      if (currentRoom.peers.size === 0) {
+        rooms.delete(currentRoom.id);
+        db.data!.rooms = db.data!.rooms.filter((r) => r.id !== currentRoom!.id);
+        await db.write();
+      }
+
+      await cleanupPeer();
+    };
+
     socket.on("getRouterRtpCapabilities", (data, callback) => {
       if (!currentRoom) return callback({ error: "No room joined" });
       callback(currentRoom.router.rtpCapabilities);
@@ -238,7 +266,6 @@ const socketIoConnection = async (io: SocketIOServer) => {
 
     socket.on("getRoomProducersWithUsers", (data, callback) => {
       if (!currentRoom) return callback([]);
-      // Return all producer IDs with their user IDs except the current user's
       const producersWithUsers = Array.from(currentRoom.peers.values())
         .filter((p) => p.id !== peerId)
         .flatMap((p) =>
@@ -259,33 +286,11 @@ const socketIoConnection = async (io: SocketIOServer) => {
     });
 
     socket.on("disconnect", async () => {
-      if (currentRoom) {
-        currentRoom.removePeer(peerId);
-        // Remove user from db room
-        await db.read();
-        let dbRoom = db.data!.rooms.find((r) => r.id === currentRoom!.id);
-        if (dbRoom) {
-          dbRoom.users = dbRoom.users.filter((u) => u !== peerId);
-          await db.write();
-        }
-        // Remove user from db users if not in any room
-        const stillInRoom = db.data!.rooms.some((r) =>
-          r.users.includes(peerId)
-        );
-        if (!stillInRoom) {
-          db.data!.users = db.data!.users.filter((u) => u.id !== peerId);
-          await db.write();
-        }
-        // Clean up empty room
-        if (currentRoom.peers.size === 0) {
-          rooms.delete(currentRoom.id);
-          // Remove from db
-          db.data!.rooms = db.data!.rooms.filter(
-            (r) => r.id !== currentRoom!.id
-          );
-          await db.write();
-        }
-      }
+      await cleanupPeer();
+    });
+
+    socket.on("leaveRoom", async () => {
+      await cleanupPeer();
     });
   });
 };
