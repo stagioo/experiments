@@ -59,6 +59,14 @@
     {
       "id": "qEDEiahDjQBOKSbAAAAH",
       "name": "qEDEiahDjQBOKSbAAAAH"
+    },
+    {
+      "id": "YDMGJj3906SxFsRdAAAF",
+      "name": "YDMGJj3906SxFsRdAAAF"
+    },
+    {
+      "id": "yYcOz_DIVrz3t6tpAAAH",
+      "name": "yYcOz_DIVrz3t6tpAAAH"
     }
   ],
   "rooms": [
@@ -73,12 +81,6 @@
       "users": [
         "1Ktd5psnNPb3uiNGAAAD",
         "18-ypzv3uev-NW6oAAAH"
-      ]
-    },
-    {
-      "id": "testing",
-      "users": [
-        "qEDEiahDjQBOKSbAAAAH"
       ]
     }
   ]

@@ -197,7 +197,9 @@ const RoomPage = () => {
           </div>
         </>
       )}
-      {joined && localStream && <MediaControls localStream={localStream} />}
+      {joined && localStream && (
+        <MediaControls localStream={localStream} produce={produce} joined={joined} />
+      )}
     </div>
   );
 };
